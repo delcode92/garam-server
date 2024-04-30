@@ -1,5 +1,5 @@
 git init
 git add [path folder/files]
-git commit -m "message here"
+git commit -m "update"
 git remote add origin https://github.com/yourusername/your-repo.git
 git push -u origin main
