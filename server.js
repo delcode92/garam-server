@@ -1,6 +1,14 @@
 const express = require("express");
+const https = require('https');
+const fs = require("fs");
 const bodyParser = require('body-parser');
+
 const app = express();
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/www.tangkapdata2.my.id/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/www.tangkapdata2.my.id/fullchain.pem')
+};
+
 const cors = require("cors");
 const { Pool } = require('pg');
 const PORT = 8080;
@@ -11,10 +19,10 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const pool = new Pool({
-  user: 'postgres',
+  user: 'tukang_app',
   host: 'localhost',
   database: 'garam',
-  // password: 'your_password',
+  password: 'tukang123',
   port: 5432, // Default PostgreSQL port
 });
 
@@ -178,7 +186,7 @@ app.get('/get_petambak_datatable', async (req, res) => {
 
 });
 
-
+// ==============================================
 // REKAP DATATABLE
 app.get('/get_rekap_datatable', async (req, res) => {
   
@@ -186,7 +194,7 @@ app.get('/get_rekap_datatable', async (req, res) => {
     const client = await pool.connect();
     const result = await client.query('SELECT *  FROM rekap_petambak ORDER BY kecamatan ASC');
     client.release(); // Release the client back to the pool
-
+    
     res.status(200).json(result.rows);
   } catch (err) {
     console.error('Error executing query', err);
@@ -249,6 +257,56 @@ app.post('/del_rekap_datatable', async (req, res) => {
 
 });
 
+// ===================================================
+
+
+// ===================================================
+app.get('/get_edit_kelompok_tani_table/:id', async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const client = await pool.connect();
+    const result = await client.query('SELECT *  FROM petambak WHERE id='+id);
+    client.release(); // Release the client back to the pool
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/update_kelompok_tani_table', async (req, res) => {
+  const { rowID, kecamatan, desa, kelompok, namaPetambak, kusuka, luasLahan, tahunBantuan, bukti, ket } = req.body;
+
+  try {
+    const client = await pool.connect();
+    const result = await client.query("UPDATE petambak SET kecamatan='"+kecamatan+"', desa='"+desa+"', nm_kelompok='"+kelompok+"', nm_petambak='"+namaPetambak+"', stat_kusuka='"+kusuka+"', luas_lahan='"+luasLahan+"', tahun_bantuan='"+tahunBantuan+"', file_kusuka='"+bukti+"', ket='"+ket+"'   WHERE id="+rowID);
+    client.release(); // Release the client back to the pool
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/del_kelompok_tani_table', async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    const client = await pool.connect();
+    const result = await client.query('DELETE  FROM petambak WHERE id='+id);
+    client.release(); // Release the client back to the pool
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Error executing query', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+// ===================================================
+
 
 
 app.get('/get_data', async (req, res) => {
@@ -269,6 +327,8 @@ app.get("/api/home", (req, res) => {
 //   res.json({ message: "Like this video!", people: ["Arpan", "Jack", "Barry"] });
 });
 
-app.listen(PORT, () => {
+const server = https.createServer(options, app);
+
+server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
